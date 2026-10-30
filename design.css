@@ -77,7 +77,6 @@ body {
   z-index: 0;
 }
 
-/* king */
 /* Chess remains one of the world's oldest and most intellectually challenging strategy games. Chess is believed to have originated in india around the 6th  century ce, where an early game called chaturanga was played. The name comes from sanskrit and refers to the four divisions of */
 .chess-rema-dbd676393f07 {
   position: absolute;
@@ -427,6 +426,38 @@ body { overflow-x: hidden; overflow-y: auto; }
   pointer-events: none;
   background: #000;
 }
+.fog-video {
+  position: absolute;
+  z-index: 2;
+  top: 1170px;
+  left: 206px;
+  width: 500px;
+  height: 750px;
+  object-fit: contain;
+  clip-path: inset(2.5% 2.5% 0% 10%);
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 500px),
+    linear-gradient(to bottom, transparent, #000 200px);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 500px),
+    linear-gradient(to bottom, transparent, #000 200px);
+  mask-composite: intersect;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  filter: url(#fogBlackKey) blur(12px) brightness(1.8) contrast(1.1);
+  transform: scale(.97);
+  transform-origin: center;
+  transition: opacity 1800ms ease, filter 1800ms ease, transform 1800ms ease;
+}
+.fog-video.is-visible {
+  visibility: visible;
+  opacity: 1;
+  filter: url(#fogBlackKey) blur(0) brightness(1.8) contrast(1.1);
+  transform: scale(1);
+}
 #fogBackground::before,
 #fogBackground::after {
   content: "";
@@ -717,13 +748,13 @@ body { overflow-x: hidden; overflow-y: auto; }
 /* Portrait layout: reflow content instead of shrinking the desktop canvas. */
 @media (max-width: 700px) and (orientation: portrait) {
   html, body { width: 100%; min-height: 100%; overflow-x: hidden; }
-  .page-stage { height: auto !important; min-height: 100svh; overflow: hidden; }
+  .page-stage { height: auto !important; min-height: 2000px; overflow: hidden; }
   .board-db6f17278ef7 {
     position: relative;
     left: auto !important;
     width: 100%;
     height: auto;
-    min-height: 100svh;
+    min-height: 2000px;
     padding: 76px 16px 250px;
     overflow: visible;
     transform: none !important;
@@ -795,6 +826,12 @@ body { overflow-x: hidden; overflow-y: auto; }
     transform: translateX(-50%) scale(.74);
     transform-origin: top center;
   }
+  .fog-video {
+    top: 1170px;
+    left: 116px;
+    width: min(500px, calc(100vw - 132px));
+    height: 750px;
+  }
 }
 
 /* Portrait artwork stays pinned to the viewport while the page scrolls. */
@@ -831,3 +868,37 @@ body { overflow-x: hidden; overflow-y: auto; }
     transform-origin: center;
   }
 }
+
+
+/* Ornate White Tribal Star Emblem */
+.ornate-whi-dc98aa4d628b {
+  position: absolute;
+  left: 515px;
+  top: 869px;
+  width: 224px;
+  height: 398px;
+  transform: matrix(0, 1, -1, 0, 0, 0);
+  background: url("border.png") no-repeat center / contain;
+}
+/* Lets learn more about the pieces */
+.lets-learn-dc952e24671e { position: absolute; left: 106px; top: 1077px; height: 96px; filter: blur(1px); }
+.lets-learn-dc952e24671e .root-0 { display: flex; white-space: break-spaces; align-items: flex-start; }
+.lets-learn-dc952e24671e .root-0-paragraph-set-0 { display: inline-flex; flex-direction: column; margin-right: 1px; vertical-align: top; }
+.lets-learn-dc952e24671e .root-0-paragraph-set-0-paragraph-0 { font-size: 0; line-height: 1.2; margin: 0; text-align: left; }
+.lets-learn-dc952e24671e .root-0-paragraph-set-0-paragraph-0-text-0 { color: #fff; white-space: pre; font-size: 80px; text-rendering: geometricPrecision; letter-spacing: 0; font-family: "Manufacturing Consent"; font-style: normal; font-weight: 400; }
+.lets-learn-dc952e24671e .kinetic-word { display: inline-block; transform: translate3d(var(--mag-x, 0px), var(--mag-y, 0px), var(--depth-z, 0px)) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scaleX(var(--fluid-stretch, 1)); transform-origin: center 70%; perspective: 460px; transform-style: preserve-3d; transition: text-shadow 180ms ease, filter 220ms ease; will-change: transform; }
+.lets-learn-dc952e24671e .kinetic-near { filter: url(#kineticTextFilter); }
+.lets-learn-dc952e24671e .kinetic-hover { text-shadow: 0 4px 3px rgba(220,238,255,.8), 0 10px 22px rgba(255,255,255,.52); }
+@media (prefers-reduced-motion: reduce) { .lets-learn-dc952e24671e .kinetic-word { transform: none !important; filter: none !important; transition: none; } }
+
+/* Second ornate emblem, aligned with the existing border image */
+.ornate-whi-dc987094a5af {
+  position: absolute;
+  left: 514.89px;
+  top: 986.11px;
+  width: 224px;
+  height: 397.77px;
+  transform: matrix(0, 1, -1, 0, 0, 0);
+  background: url("border.png") no-repeat center / cover;
+}
+
