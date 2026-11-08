@@ -57,7 +57,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
 }
 
@@ -426,38 +426,6 @@ body { overflow-x: hidden; overflow-y: auto; }
   pointer-events: none;
   background: #000;
 }
-.fog-video {
-  position: absolute;
-  z-index: 2;
-  top: 1170px;
-  left: 206px;
-  width: 500px;
-  height: 750px;
-  object-fit: contain;
-  clip-path: inset(2.5% 2.5% 0% 10%);
-  -webkit-mask-image:
-    linear-gradient(to right, transparent, #000 500px),
-    linear-gradient(to bottom, transparent, #000 200px);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent, #000 500px),
-    linear-gradient(to bottom, transparent, #000 200px);
-  mask-composite: intersect;
-  mix-blend-mode: screen;
-  pointer-events: none;
-  visibility: hidden;
-  opacity: 0;
-  filter: url(#fogBlackKey) blur(12px) brightness(1.8) contrast(1.1);
-  transform: scale(.97);
-  transform-origin: center;
-  transition: opacity 1800ms ease, filter 1800ms ease, transform 1800ms ease;
-}
-.fog-video.is-visible {
-  visibility: visible;
-  opacity: 1;
-  filter: url(#fogBlackKey) blur(0) brightness(1.8) contrast(1.1);
-  transform: scale(1);
-}
 #fogBackground::before,
 #fogBackground::after {
   content: "";
@@ -746,128 +714,10 @@ body { overflow-x: hidden; overflow-y: auto; }
 }
 
 /* Portrait layout: reflow content instead of shrinking the desktop canvas. */
-@media (max-width: 700px) and (orientation: portrait) {
-  html, body { width: 100%; min-height: 100%; overflow-x: hidden; }
-  .page-stage { height: auto !important; min-height: 2000px; overflow: hidden; }
-  .board-db6f17278ef7 {
-    position: relative;
-    left: auto !important;
-    width: 100%;
-    height: auto;
-    min-height: 2000px;
-    padding: 76px 16px 250px;
-    overflow: visible;
-    transform: none !important;
-  }
-  .chess-db7df4e803c2 {
-    position: relative;
-    top: auto !important;
-    left: auto !important;
-    width: 100%;
-    height: clamp(125px, 36vw, 165px);
-    margin: 0 auto 12px;
-  }
-  .chess-db7df4e803c2 > svg {
-    top: 0;
-    left: 50%;
-    width: min(86vw, 350px);
-    height: auto;
-    transform: translateX(-50%);
-  }
-  .luminous-o-db871b9f9826 {
-    left: -65px;
-    top: 0;
-    width: 175px;
-    height: 245px;
-    opacity: .72;
-  }
-  .chess-rema-dbd676393f07 {
-    position: relative;
-    top: auto !important;
-    left: auto !important;
-    width: 100%;
-    margin: 0 auto;
-    z-index: 2;
-  }
-  .chess-rema-dbd676393f07 .root-0,
-  .chess-rema-dbd676393f07 .root-0-paragraph-set-0 { display: block; min-width: 0; width: 100%; }
-  .chess-rema-dbd676393f07 p,
-  .chess-rema-dbd676393f07 .text-node {
-    display: inline;
-    white-space: normal !important;
-    overflow-wrap: anywhere;
-    font-size: clamp(23px, 6.1vw, 30px) !important;
-    line-height: 1.42;
-  }
-  .chess-rema-dbd676393f07 p { margin: 0; }
-  .image-db87d6950a4f {
-    position: absolute !important;
-    top: calc(100svh + 120px);
-    right: -42px;
-    bottom: auto;
-    left: auto;
-    width: min(68vw, 280px);
-    height: min(72vw, 300px);
-    opacity: .42;
-  }
-  .ethereal-w-db88f0aa579b {
-    position: absolute !important;
-    top: calc(100svh + 30px);
-    right: -65px;
-    bottom: auto;
-    left: auto;
-    width: min(55vw, 230px);
-    height: min(85vw, 350px);
-    opacity: .38;
-  }
-  .sound-ui {
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%) scale(.74);
-    transform-origin: top center;
-  }
-  .fog-video {
-    top: 1170px;
-    left: 116px;
-    width: min(500px, calc(100vw - 132px));
-    height: 750px;
-  }
-}
+
 
 /* Portrait artwork stays pinned to the viewport while the page scrolls. */
-@media (max-width: 700px) and (orientation: portrait) {
-  .image-db87d6950a4f {
-    position: fixed !important;
-    top: auto;
-    left: auto;
-    right: -30px;
-    bottom: -35px;
-    width: min(68vw, 280px);
-    height: min(72vw, 300px);
-    opacity: .42;
-    z-index: 0;
-  }
-  .ethereal-w-db88f0aa579b {
-    position: fixed !important;
-    top: calc(50vh - 115px);
-    left: auto;
-    right: -65px;
-    bottom: auto;
-    width: min(50vw, 215px);
-    height: min(92vw, 380px);
-    opacity: .38;
-    z-index: 0;
-  }
-  .luminous-o-db871b9f9826 {
-    left: -14px;
-    top: 137px;
-    width: 120px;
-    height: 170px;
-    opacity: .58;
-    transform: rotate(304.36deg);
-    transform-origin: center;
-  }
-}
+
 
 
 /* Ornate White Tribal Star Emblem */
@@ -902,3 +752,130 @@ body { overflow-x: hidden; overflow-y: auto; }
   background: url("border.png") no-repeat center / cover;
 }
 
+/* White king smoke WebGL canvas inside the board frame, below the heading */
+.king-smoke {
+  position: absolute;
+  left: 0;
+  top: 1020px;
+  width: 1380px;
+  height: 840px;
+  z-index: 2;
+  pointer-events: none;
+  display: block;
+}
+
+
+/* No text (I-beam) cursor over the copy: keep the normal arrow everywhere; buttons keep their pointer. */
+html, body, .shape.text, .shape.text *, .kinetic-word { cursor: default; }
+
+/* The page now ends just below the white king, so nothing (e.g. the WebGL canvas) extends the scroll area past it. */
+@media all {
+  .page-stage { overflow-y: clip; }
+}
+
+
+/* Text is purely decorative: not clickable, not selectable (the kinetic words still react to the cursor via window events). */
+.shape.text, .shape.text *, .kinetic-word { pointer-events: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
+/* "Turn on the volume" is a label only: not clickable (the sound switch below still works). */
+.volume-prompt, .volume-prompt * { pointer-events: none !important; cursor: default !important; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+
+/* kingbg.png and swordbg.png: opacity untouched, just dimmed (brightness) to a little above the web.png texture. */
+.image-db87d6950a4f, .ethereal-w-db88f0aa579b { filter: brightness(0.6); }
+/* Opacity 70% on desktop/landscape (the phone portrait layout already uses lower values). */
+@media all {
+  .image-db87d6950a4f, .ethereal-w-db88f0aa579b { opacity: 0.7; }
+}
+
+/* ------------------------------------------------------------------
+   King page = a floating rounded card on top of index.html.
+   - The section is a transparent, blurred "glass" layer the size of the screen.
+   - The iframe (kpage.html) is inset from the edges, so the uncovered margin
+     shows a blurred, dimmed copy of whatever is behind it (index.html).
+   Tweak the three variables below to change the look.
+------------------------------------------------------------------- */
+.king-page-section {
+  --card-gap: 30px;                          /* gap between the card and every edge of the browser */
+  --card-radius: clamp(22px, 3.4vmin, 48px); /* corner roundness */
+  position: relative; z-index: 2; flex: 0 0 100vh; align-self: stretch; width: 100%;
+  height: 100vh; height: 100dvh; min-height: 0; overflow: hidden;
+  background: transparent;                   /* only the card travels with the scroll */
+}
+/* Fixed blur layer: it never scrolls, it only fades in as the card arrives (opacity set by script in index.html). */
+.king-blur {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  opacity: 0; visibility: hidden;
+  background: rgba(0, 0, 0, .38);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+          backdrop-filter: blur(22px) saturate(1.15);
+}
+.king-page-frame {
+  position: absolute; z-index: 1;
+  top: var(--card-gap); left: var(--card-gap);
+  right: auto; bottom: auto;
+  width: calc(100% - 2 * var(--card-gap));
+  height: calc(100% - 2 * var(--card-gap));
+  border: 0; display: block; background: #fff;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 28px 90px rgba(0,0,0,.65);
+}
+/* Keep index.html pinned behind the card once you reach its end, so the blur has something to show. */
+.page-stage { position: sticky; }
+
+/* The volume prompt is an actual music button; keep text copy non-clickable elsewhere. */
+.volume-prompt { pointer-events:auto !important; cursor:pointer !important; }
+.volume-prompt * { pointer-events:none !important; cursor:pointer !important; }
+/* Materialize fire video: same box as the WebGL canvas, layered just beneath it, no controls, black keyed out. */
+.king-fade-video {
+  position: absolute;
+  left: 0;
+  top: 1020px;
+  width: 1380px;
+  height: 840px;
+  object-fit: cover;
+  z-index: 1;
+  pointer-events: none;
+  display: block;
+  opacity: 0;
+  filter: url(#kingFireKey);
+  transition: opacity .2s ease;
+}
+.king-fade-video.is-playing { opacity: 1; }
+.king-fade-video.is-done { opacity: 0; transition-duration: .6s; }
+.king-fade-video::-webkit-media-controls,
+.king-fade-video::-webkit-media-controls-enclosure,
+.king-fade-video::-webkit-media-controls-panel { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) { .king-fade-video { display: none; } }
+
+/* Keep the learn heading in the portrait content flow and center its border art around it. */
+
+/* Same desktop composition at every screen size: the 1380px board is scaled by script (--board-scale). */
+.page-stage { overflow-y: clip; }
+.board-db6f17278ef7 { position: absolute; top: 0; transform-origin: top left; }
+.king-smoke { left: 0; top: 1020px; width: 1380px; height: 840px; }
+.king-fade-video { left: 0; top: 1020px; width: 1380px; height: 840px; }
+
+@media (orientation: portrait) { .king-page-section { --card-gap: 14px; } }
+/* ===== Phone / portrait layout: same look as desktop, reflowed on a narrow virtual canvas (scaled by script) ===== */
+.page-stage.is-portrait .board-db6f17278ef7 { width: 540px; height: auto; }
+.page-stage.is-portrait .chess-db7df4e803c2 { left: 51px; top: 150px; transform-origin: center; }
+.page-stage.is-portrait .luminous-o-db871b9f9826 { left: -70px; top: 150px; }
+.page-stage.is-portrait .chess-rema-dbd676393f07 { left: 28px; top: 430px; width: 484px; }
+.page-stage.is-portrait .chess-rema-dbd676393f07 .text-node { font-size: 46px; line-height: 1.28; }
+.page-stage.is-portrait .chess-rema-dbd676393f07 p { line-height: 1.28; }
+.page-stage.is-portrait .lets-learn-dc952e24671e { left: 0; width: 540px; height: 60px; }
+.page-stage.is-portrait .lets-learn-dc952e24671e p { text-align: center; }
+.page-stage.is-portrait .lets-learn-dc952e24671e .text-node { font-size: 40px !important; }
+.page-stage.is-portrait [class*="ornate-whi"] { transform: matrix(0, .52, -.52, 0, 0, 0); }
+/* sword (top right) and king (bottom right) sized from the screen height so they are big and close together */
+.page-stage.is-portrait .ethereal-w-db88f0aa579b {
+  height: 52vh; height: 52dvh; width: calc(52vh * .754); width: calc(52dvh * .754);
+  right: -18%; top: 0;
+}
+.page-stage.is-portrait .image-db87d6950a4f {
+  height: 44vh; height: 44dvh; width: calc(44vh * .983); width: calc(44dvh * .983);
+  right: -6%; bottom: -2vh;
+}
+@media (max-width: 520px) { .sound-ui { transform: scale(.8); } }

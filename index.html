@@ -2,10 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
   <title>Chess — A History of Strategy</title>
   <link rel="stylesheet" href="design.css">
+  <style id="chess-intro-style">
+    /* ---- chess clock intro -> king card sequence ---- */
+    .king-blur { display: none !important; }                 /* replaced by #introVeil (same blur/dim look) */
+    #kingScrollRoom { flex: 0 0 100vh; height: 100vh; height: 100dvh; width: 100%; pointer-events: none; } /* scroll room after the WebGL king */
+    #introVeil { position: fixed; inset: 0; z-index: 40; pointer-events: none; visibility: hidden; }
+    #chessIntroFrame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; z-index: 45; background: transparent; pointer-events: none; visibility: hidden; color-scheme: normal; transform-origin: 0 0; will-change: transform, opacity; }
+    /* the king card is no longer scroll-driven: it is fixed and the script fades/rises it in */
+    #kingPageSection.king-page-section { position: fixed; inset: 0; z-index: 50; flex: none; width: 100%; height: 100vh; height: 100dvh;
+      transform: translateY(100vh); opacity: 0; visibility: hidden; pointer-events: none; will-change: transform, opacity; }
+    #kingPageSection.is-live { pointer-events: auto; }
+  </style>
+  <script>
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.addEventListener('pageshow', () => window.scrollTo(0, 0));
+  </script>
 </head>
 <body>
   <div id="fogBackground" aria-hidden="true">
@@ -14,12 +29,12 @@
   <main class="page-stage" id="pageStage">
   <div class="shape rect image-db87d6950a4f" aria-hidden="true"></div>
   <div class="shape rect ethereal-w-db88f0aa579b" aria-hidden="true"></div>
+<!-- frame: Board -->
+<div class="frame board-db6f17278ef7">
 <!-- rect: Ornate White Tribal Star Emblem -->
   <div class="shape rect ornate-whi-dc98aa4d628b" aria-hidden="true"></div>
 <!-- rect: Ornate White Tribal Star Emblem -->
   <div class="shape rect ornate-whi-dc987094a5af" aria-hidden="true"></div>
-<!-- frame: Board -->
-<div class="frame board-db6f17278ef7">
 <!-- rect: Luminous Ornate Starburst Sigil -->
   <div class="shape rect luminous-o-db871b9f9826">
   </div>
@@ -81,11 +96,61 @@
       </div>
     </div>
   </div>
-  <video class="fog-video" muted loop playsinline preload="none">
-    <source src="Fogvideo.MOV">
-  </video>
 </div>
   </main>
+  <div class="king-blur" id="kingBlur" aria-hidden="true"></div>
+  <div id="kingScrollRoom" aria-hidden="true"></div>
+  <div id="introVeil" aria-hidden="true"></div>
+  <iframe id="chessIntroFrame" src="chess_clock_intro.html" title="Chess intro animation" allow="autoplay" aria-hidden="true" tabindex="-1"></iframe>
+  <section class="king-page-section" id="kingPageSection" aria-label="The King chess piece">
+    <iframe class="king-page-frame" id="kingPageFrame" src="kpage.html" title="The King chess piece"></iframe>
+  </section>
+  <script>
+    /* Pin the end of index.html in place while the king card scrolls over it (this is what shows blurred around the card). */
+    (() => {
+      const stage = document.getElementById('pageStage');
+      const pin = () => { stage.style.top = Math.min(0, window.innerHeight - stage.offsetHeight) + 'px'; };
+      new ResizeObserver(pin).observe(stage);
+      addEventListener('resize', pin, { passive: true });
+      pin();
+    })();
+  </script>
+  <script>
+    (() => {
+      const section = document.getElementById('kingPageSection');
+      const frame = document.getElementById('kingPageFrame');
+      const blur = document.getElementById('kingBlur');
+      let childReady = false;
+      let typingStarted = false;
+      const update = () => {
+        const rect = section.getBoundingClientRect();
+        const vh = window.innerHeight;
+        // blur fades in (it does not scroll) as the card rises over the pinned index page
+        const progress = Math.min(1, Math.max(0, 1 - rect.top / vh));
+        const t = Math.min(1, Math.max(0, (progress - 0.3) / 0.7));
+        const eased = t * t * (3 - 2 * t);
+        blur.style.opacity = eased;
+        blur.style.visibility = eased > 0 ? 'visible' : 'hidden';
+        // start the typewriter once the card is (almost) fully on screen
+        const mostlyVisible = rect.top <= vh * 0.15 && rect.bottom >= vh * 0.85;
+        if (mostlyVisible && childReady && !typingStarted) {
+          frame.contentWindow.postMessage({ type: 'start-king-typewriter' }, '*');
+        }
+      };
+      window.addEventListener('message', (event) => {
+        if (event.source !== frame.contentWindow) return;
+        if (event.data?.type === 'king-typewriter-ready') { childReady = true; update(); }
+        if (event.data?.type === 'king-typewriter-started') typingStarted = true;
+      });
+      window.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update, { passive: true });
+      // the iframe's own scripts are ready once it has loaded, even if its "ready" message was missed
+      frame.addEventListener('load', () => { childReady = true; update(); });
+      // safety net: keep checking until the typing has actually started
+      const poll = setInterval(() => { if (typingStarted) clearInterval(poll); else update(); }, 400);
+      update();
+    })();
+  </script>
   <script>
     (() => {
       const board = document.querySelector('.board-db6f17278ef7');
@@ -93,40 +158,46 @@
       const baseWidth = 1380;
       const baseHeight = 2000;
       function fitBoard() {
-        const portraitLayout = window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches;
-        if (portraitLayout) {
-          board.style.transform = 'none';
+        const portrait = window.innerWidth <= 1024 && window.innerHeight > window.innerWidth;
+        stage.classList.toggle('is-portrait', portrait);
+        const learn = board.querySelector('.lets-learn-dc952e24671e');
+        const emblems = [...board.querySelectorAll('.shape[class*="ornate-whi"]')];
+        if (portrait) {
+          const W = 540, scale = window.innerWidth / W;
+          board.style.transform = `scale(${scale})`;
           board.style.left = '0px';
-          stage.style.height = 'auto';
-          stage.style.setProperty('--board-scale', 1);
+          const para = board.querySelector('.chess-rema-dbd676393f07');
+          const viewH = window.innerHeight / scale;                   // screen height in canvas units
+          const paraBottom = para.offsetTop + para.offsetHeight;
+          const lh = learn.offsetHeight, em = 30, half = 224 * 0.52 / 2, off = 30;
+          const blockH = lh + 2 * (off + half) - lh;                  // heading + emblem frame
+          // heading sits a short, fixed distance below the text; any spare screen height goes below it (king art lives there)
+          const learnTop = paraBottom + 70;
+          learn.style.top = `${learnTop}px`;
+          const cy = learnTop + lh / 2;
+          emblems.forEach((el, i) => {
+            el.style.left = `${W / 2 - el.offsetWidth / 2}px`;
+            el.style.top = `${cy + (i === 0 ? -off : off) - el.offsetHeight / 2}px`;
+          });
+          const bottom = cy + off + half + 30;
+          stage.style.height = `${Math.max(window.innerHeight, bottom * scale)}px`;
+          stage.style.setProperty('--board-scale', scale);
           return;
         }
+        learn.style.top = ''; emblems.forEach((el) => { el.style.left = ''; el.style.top = ''; });
         const scale = Math.min(1, window.innerWidth / baseWidth);
         board.style.transform = `scale(${scale})`;
-        const boardLeft = Math.max(0, (window.innerWidth - baseWidth * scale) / 2);
-        board.style.left = `${boardLeft}px`;
-        stage.style.height = `${Math.max(window.innerHeight, baseHeight * scale)}px`;
-        stage.style.setProperty("--board-scale", scale);
+        board.style.left = `${Math.max(0, (window.innerWidth - baseWidth * scale) / 2)}px`;
+        let borderBottom = 0;
+        emblems.forEach((el) => { borderBottom = Math.max(borderBottom, el.offsetTop + el.offsetHeight / 2 + el.offsetWidth / 2); });
+        const contentBottom = Math.max(borderBottom, 1077 + 96) * scale + 25;
+        stage.style.height = `${Math.max(window.innerHeight, contentBottom)}px`;
+        stage.style.setProperty('--board-scale', scale);
       }
       window.addEventListener('resize', fitBoard, { passive: true });
       fitBoard();
-      const fogVideo = document.querySelector('.fog-video');
-      const descriptionText = document.querySelector('.chess-rema-dbd676393f07');
-      if (fogVideo) {
-        const revealFog = () => {
-          fogVideo.classList.add('is-visible');
-          fogVideo.play().catch(() => {});
-        };
-        const revealOnScroll = () => {
-          const rect = fogVideo.getBoundingClientRect();
-          const descriptionRect = descriptionText ? descriptionText.getBoundingClientRect() : { bottom: 0 };
-          if (descriptionRect.bottom <= 0 && rect.top < innerHeight && rect.bottom > 0) {
-            revealFog();
-            removeEventListener('scroll', revealOnScroll);
-          }
-        };
-        addEventListener('scroll', revealOnScroll, { passive: true });
-      }
+      window.addEventListener('load', fitBoard);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitBoard);
     })();
   </script>  <!-- Low-strength animated displacement for a continuous liquid shimmer. -->
   <svg class="fluid-definitions" aria-hidden="true" focusable="false">
@@ -146,14 +217,9 @@
         <animate attributeName="scale" values="10;18;10" dur="3s" repeatCount="indefinite" />
       </feDisplacementMap>
     </filter>
-    <filter id="fogBlackKey" color-interpolation-filters="sRGB">
-      <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0.2126 0.7152 0.0722 0 0" />
-      <feComponentTransfer>
-        <feFuncA type="table" tableValues="0 0 0 0 0 0 0.08 0.35 0.75 1 1" />
-      </feComponentTransfer>
-    </filter>
   </svg>
   <audio id="backgroundSong" src="song.mp3" loop preload="auto" muted></audio>
+  <audio id="kingFadeAudio" src="effect.mp4" preload="auto"></audio>
   <section class="sound-ui" aria-label="Sound control">
     <button id="volumePrompt" class="volume-prompt" type="button">Turn on the volume</button>
     <div class="volume-control">
@@ -168,8 +234,9 @@
   <script id="background-audio-controls">
     (() => {
       const audio = document.getElementById('backgroundSong');
-      const videoAudio = document.querySelector('.fog-video');
-      const audioElements = [audio, videoAudio].filter(Boolean);
+      const fadeEffect = document.getElementById('kingFadeAudio');
+      const audioElements = [audio];
+      window.__soundEnabled = false;
       const toggle = document.getElementById('volumeToggle');
       const prompt = document.getElementById('volumePrompt');
       const canvas = document.getElementById('emberDissolve');
@@ -182,15 +249,15 @@
       function fadeAudio(target) {
         if (audioFade) cancelAnimationFrame(audioFade);
         const starts = audioElements.map(item => item.volume);
-        const targets = audioElements.map(item => item === videoAudio ? Math.min(1, target * 1.3) : target);
+        const targets = audioElements.map(item => target);
         const startedAt = performance.now();
         const duration = 520;
         audioElements.forEach(item => { item.muted = false; });
         function step(now) {
-          const progress = Math.min(1, (now - startedAt) / duration);
+          const progress = Math.min(1, Math.max(0, (performance.now() - startedAt) / duration));
           const eased = 1 - Math.pow(1 - progress, 3);
           audioElements.forEach((item, index) => {
-            item.volume = starts[index] + (targets[index] - starts[index]) * eased;
+            item.volume = Math.min(1, Math.max(0, starts[index] + (targets[index] - starts[index]) * eased));
           });
           if (progress < 1) audioFade = requestAnimationFrame(step);
           else {
@@ -201,7 +268,6 @@
         audioFade = requestAnimationFrame(step);
       }
       audioElements.forEach(item => { item.volume = 0; item.muted = true; });
-      audio.play().catch(() => {});
       function resizeCanvas() {
         const dpr = Math.min(devicePixelRatio || 1, 2);
         canvas.width = Math.round(innerWidth * dpr);
@@ -246,10 +312,28 @@
       function setEnabled(enabled) {
         toggle.setAttribute('aria-checked', String(enabled));
         toggle.setAttribute('aria-label', enabled ? 'Turn sound off' : 'Turn sound on');
+        window.__soundEnabled = enabled;
+        fadeEffect.muted = !enabled;
+        if (!enabled) { fadeEffect.pause(); fadeEffect.currentTime = 0; fadeEffect.loop = false; }
         if (enabled) {
-          audio.play().catch(() => {});
-          if (videoAudio.classList.contains('is-visible')) videoAudio.play().catch(() => {});
-          fadeAudio(0.42);
+          try { window.__boostKingFadeAudio?.(); window.__unlockKingFadeAudio?.(); window.__startKingFadeAudio?.(); } catch (error) { console.warn('Effect sound setup failed; the song is unaffected.', error); }
+          const playPromise = audio.play();
+          if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.then(() => {
+              if (toggle.getAttribute('aria-checked') === 'true') fadeAudio(0.42);
+            }).catch(() => {
+              audio.pause();
+              audio.currentTime = 0;
+              audio.volume = 0;
+              audio.muted = true;
+              window.__soundEnabled = false;
+              fadeEffect.muted = true; fadeEffect.pause(); fadeEffect.currentTime = 0; fadeEffect.loop = false;
+              toggle.setAttribute('aria-checked', 'false');
+              toggle.setAttribute('aria-label', 'Turn sound on');
+            });
+          } else {
+            fadeAudio(0.42);
+          }
           if (!prompt.classList.contains('is-off') && !prompt.classList.contains('is-dissolving')) {
             prompt.classList.add('is-dissolving'); emitMist(); clearTimeout(hidePromptTimer);
             hidePromptTimer = setTimeout(() => { prompt.classList.add('is-off'); prompt.classList.remove('is-dissolving'); }, 2500);
@@ -264,8 +348,12 @@
       prompt.addEventListener('click', () => setEnabled(true));
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && toggle.getAttribute('aria-checked') === 'true') {
-          audio.play().catch(() => {});
-          if (videoAudio.classList.contains('is-visible')) videoAudio.play().catch(() => {});
+          const resumePromise = audio.play();
+          if (resumePromise && typeof resumePromise.then === 'function') {
+            resumePromise.then(() => {
+              if (toggle.getAttribute('aria-checked') === 'true') fadeAudio(0.42);
+            }).catch(() => {});
+          }
         }
       });
     })();
@@ -357,5 +445,549 @@
     })();
   </script>
 
+
+
+  <script id="king-fly-sound">
+    /* ksound.mp3 plays the moment the king mask starts flying to the kpage position.
+       - Only plays while the sound toggle is ON (window.__soundEnabled).
+       - Own hidden Audio object: the song and the other effects are never touched.
+       - Primed silently on the toggle / prompt click (a user gesture) so the scripted start is allowed later. */
+    (() => {
+      try {
+        const toggle = document.getElementById('volumeToggle');
+        const sfx = new Audio('ksound.mp3');
+        sfx.preload = 'auto'; sfx.loop = false;
+        const VOLUME = 1;                 // 0 - 1
+        sfx.volume = VOLUME;
+        let fadeFrame = 0, primed = false;
+
+        function prime() {
+          if (primed) return;
+          try {
+            sfx.volume = 0;
+            const p = sfx.play();
+            const done = () => { sfx.pause(); sfx.currentTime = 0; sfx.volume = VOLUME; primed = true; };
+            if (p && p.then) p.then(done).catch(() => { sfx.volume = VOLUME; }); else done();
+          } catch (e) { sfx.volume = VOLUME; }
+        }
+        function stop(fadeMs) {
+          cancelAnimationFrame(fadeFrame);
+          if (sfx.paused) { sfx.currentTime = 0; sfx.volume = VOLUME; return; }
+          const v0 = sfx.volume, t0 = performance.now();
+          const step = (now) => {
+            const k = Math.min(1, (now - t0) / (fadeMs || 1));
+            sfx.volume = Math.max(0, v0 * (1 - k));
+            if (k < 1) fadeFrame = requestAnimationFrame(step);
+            else { sfx.pause(); sfx.currentTime = 0; sfx.volume = VOLUME; }
+          };
+          fadeFrame = requestAnimationFrame(step);
+        }
+        window.__playKingFlySound = () => {
+          if (window.__soundEnabled !== true) return;
+          cancelAnimationFrame(fadeFrame);
+          sfx.muted = false; sfx.currentTime = 0; sfx.volume = VOLUME;
+          const p = sfx.play();
+          if (p && p.catch) p.catch(() => {});
+        };
+
+        toggle && toggle.addEventListener('click', () => {
+          try { if (toggle.getAttribute('aria-checked') === 'true') prime(); else stop(80); } catch (e) {}
+        });
+        document.getElementById('volumePrompt')?.addEventListener('click', prime);
+        const firstGesture = () => { if (window.__soundEnabled === true) prime(); };
+        ['pointerdown', 'keydown', 'touchstart'].forEach((t) => addEventListener(t, firstGesture, { once: true, passive: true }));
+        addEventListener('chess-intro-reset', () => stop(200));   // scrolled back up mid-flight
+      } catch (error) {
+        console.warn('King fly sound unavailable; the song is unaffected.', error);
+      }
+    })();
+  </script>
+
+  <script id="king-transition-sound">
+    /* Transition sound for the kpage.html card rising over index.html.
+       - Plays only while the sound toggle is ON (window.__soundEnabled), so the toggle controls it.
+       - Uses its own hidden Audio object: no controls, and the song (#backgroundSong) is never touched.
+       - The loudness boost is baked into transition.mp3 itself, so a plain <audio> element at full volume plays it reliably everywhere.
+       - Everything is wrapped in try/catch so a failure here can never affect the song. */
+    (() => {
+      try {
+        const section = document.getElementById('kingPageSection');
+        const toggle = document.getElementById('volumeToggle');
+        if (!section || !toggle) return;
+
+        const sfx = new Audio('transition.mp3');
+        sfx.preload = 'auto';
+        sfx.loop = false;
+        sfx.volume = 1;
+        sfx.muted = false;
+
+        const SPEED = 0.75;              // playback speed (1 = normal, lower = slower)
+        sfx.defaultPlaybackRate = SPEED;
+        sfx.playbackRate = SPEED;
+        const MIN_RATE = 0.4, MAX_RATE = 1.6;   // limits for the speed adjustment
+        const STEER = 3;                 // how strongly the speed follows the card (higher = tighter)
+        const DELAY_MS = 250;            // sound becomes audible this long after the card starts rising
+        let delayTimer = 0;
+        let armed = true;                // ready to play on the next scroll into the king card
+        let fadeFrame = 0;
+        let steerFrame = 0;
+        let finished = false;            // true once the card is fully on screen and the sound has been faded out
+
+        // The toggle / prompt click is a user gesture: prime the sound silently so scroll-triggered playback is allowed later.
+        function prime() {
+          try {
+            sfx.volume = 0;
+            const p = sfx.play();
+            const done = () => { sfx.pause(); sfx.currentTime = 0; sfx.volume = 1; };
+            if (p && p.then) p.then(done).catch(() => { sfx.volume = 1; }); else done();
+          } catch (e) { sfx.volume = 1; }
+        }
+        toggle.addEventListener('click', () => {
+          try {
+            if (toggle.getAttribute('aria-checked') === 'true') prime(); else stop();
+          } catch (e) {}
+        });
+        document.getElementById('volumePrompt')?.addEventListener('click', prime);
+
+        function stop() {
+          clearTimeout(delayTimer);
+          cancelAnimationFrame(fadeFrame);
+          cancelAnimationFrame(steerFrame);
+          sfx.pause(); sfx.currentTime = 0; sfx.volume = 1;
+          sfx.playbackRate = SPEED;
+        }
+        // Keeps the sound in step with the card: its playback speed is nudged so the sound reaches its end
+        // right when the card is fully on screen (card progress 0 -> 1 maps to sound progress 0 -> 1).
+        function steer() {
+          steerFrame = requestAnimationFrame(steer);
+          const dur = sfx.duration;
+          if (sfx.paused || !isFinite(dur) || dur <= 0) return;
+          const vh = window.innerHeight;
+          const top = section.getBoundingClientRect().top;
+          const p = Math.min(1, Math.max(0, (vh * 0.97 - top) / (vh * 0.97)));   // card progress
+          const a = sfx.currentTime / dur;                                        // sound progress
+          sfx.playbackRate = Math.min(MAX_RATE, Math.max(MIN_RATE, SPEED * (1 + STEER * (p - a))));
+        }
+        function ramp(from, to, dur, onDone) {
+          cancelAnimationFrame(fadeFrame);
+          const t0 = performance.now();
+          const step = (now) => {
+            const k = dur <= 0 ? 1 : Math.min(1, (now - t0) / dur);
+            const e = k * k * (3 - 2 * k);                // smoothstep ease
+            sfx.volume = Math.min(1, Math.max(0, from + (to - from) * e));
+            if (k < 1) fadeFrame = requestAnimationFrame(step); else if (onDone) onDone();
+          };
+          fadeFrame = requestAnimationFrame(step);
+        }
+        function fadeOut() {
+          clearTimeout(delayTimer);
+          if (sfx.paused) return;
+          ramp(sfx.volume, 0, 250, stop);
+        }
+        function play() {
+          if (window.__soundEnabled !== true) return;
+          clearTimeout(delayTimer);
+          delayTimer = setTimeout(() => {              // wait before the sound becomes audible
+            if (window.__soundEnabled !== true) return;
+            cancelAnimationFrame(fadeFrame);
+            sfx.muted = false;
+            sfx.currentTime = 0;
+            sfx.volume = 1;   // the fade-in/out is built into transition.mp3 itself
+            sfx.playbackRate = SPEED;
+            const p = sfx.play();
+            if (p && p.catch) p.catch(() => {});
+            cancelAnimationFrame(steerFrame);
+            steerFrame = requestAnimationFrame(steer);
+          }, DELAY_MS);
+        }
+        function check() {
+          if (window.__kpageHandoff) return;   // the card now fades in after the king handoff instead of rising
+          const top = section.getBoundingClientRect().top;
+          const vh = window.innerHeight;
+          if (armed && top < vh * 0.97) {                 // card has started rising into view (also catches fast scrolls)
+            armed = false;
+            finished = false;
+            play();
+          } else if (top >= vh * 0.99) {                   // scrolled back above the card: reset and fade out
+            if (!armed) fadeOut();
+            armed = true;
+            finished = false;
+          } else if (!armed && !finished && top <= 1) {    // card fully on screen: the sound ends here
+            finished = true;
+            cancelAnimationFrame(steerFrame);
+            fadeOut();
+          }
+        }
+        addEventListener('scroll', check, { passive: true });
+        addEventListener('resize', check, { passive: true });
+      } catch (error) {
+        console.warn('Transition sound unavailable; the song is unaffected.', error);
+      }
+    })();
+  </script>
+  <script id="king-sfx">
+    /* Sound effects of the king-mask WebGL (now living inside chess_clock_intro.html).
+       - effect.mp4 (#kingFadeAudio) and anisound.mp3 play when the king starts to materialize, exactly as before.
+       - Both obey the sound toggle (window.__soundEnabled); turning the toggle off stops them.
+       - They use their own audio objects: the song, the intro sounds and the transition sound are never touched.
+       - Wrapped in try/catch so a failure here can never affect the other sounds. */
+    (() => {
+      try {
+        const toggle = document.getElementById('volumeToggle');
+        const intro = document.getElementById('chessIntroFrame');
+        const fadeAudio = document.getElementById('kingFadeAudio');
+        if (!toggle || !intro || !fadeAudio) return;
+
+        // ---- when the king is forming (reported by the intro iframe) ----
+        let forming = false, startedAt = 0, FADE_TIME = 3.2;
+        const elapsed = () => (forming ? Math.min(FADE_TIME, (performance.now() - startedAt) / 1000) : 0);
+        window.__kingSmokeFade = { get seconds() { return FADE_TIME; }, progress: () => (forming ? elapsed() / FADE_TIME : 0) };
+
+        // ---- effect.mp4 (boosted) ----
+        let fxStarting = false, fxStarted = false, fadeAudioContext = null;
+        fadeAudio.muted = true;
+        window.__boostKingFadeAudio = () => {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          try {
+            if (!fadeAudioContext) {
+              fadeAudioContext = new AudioContextClass();
+              const source = fadeAudioContext.createMediaElementSource(fadeAudio);
+              const gain = fadeAudioContext.createGain();
+              gain.gain.value = 2.2;
+              source.connect(gain).connect(fadeAudioContext.destination);
+            }
+            if (fadeAudioContext.state === 'suspended') fadeAudioContext.resume();
+          } catch (error) {
+            console.warn('Could not boost the fade sound; using normal playback volume.', error);
+          }
+        };
+        function startFadeAudio() {
+          if (!forming || window.__soundEnabled !== true || fxStarted || fxStarting || elapsed() >= FADE_TIME) return false;
+          fxStarting = true;
+          fadeAudio.loop = false;
+          fadeAudio.currentTime = 0;
+          fadeAudio.volume = 1;
+          fadeAudio.muted = false;
+          const play = fadeAudio.paused ? fadeAudio.play() : null;
+          if (play && typeof play.then === 'function') {
+            play.then(() => { fxStarting = false; fxStarted = true; }).catch(() => { fxStarting = false; });
+          } else { fxStarting = false; fxStarted = true; }
+          return true;
+        }
+        window.__startKingFadeAudio = startFadeAudio;
+        window.__unlockKingFadeAudio = () => {
+          if (forming || window.__soundEnabled !== true || fxStarted || !fadeAudio.paused) return;
+          fadeAudio.muted = true;
+          fadeAudio.loop = true;
+          const unlock = fadeAudio.play();
+          if (unlock && typeof unlock.then === 'function') {
+            unlock.catch(() => { fadeAudio.muted = window.__soundEnabled !== true; });
+          }
+        };
+
+        // ---- anisound.mp3 ----
+        const sfx = new Audio('anisound.mp3');
+        sfx.preload = 'auto';
+        sfx.loop = false;
+        sfx.volume = 1;
+        const SPEED = 0.75;              // playback speed (1 = normal, lower = slower)
+        const START_AFTER_S = 0.5;       // seconds after the smoke starts forming that the sound starts
+        const FADE_MS = 500;             // fade-in length when the sound starts
+        sfx.defaultPlaybackRate = SPEED;
+        sfx.playbackRate = SPEED;
+        let playing = false, done = false, fadeTimer = 0;
+        function prime() {   // the toggle / prompt click is a user gesture: prime silently so later playback is allowed
+          try {
+            sfx.volume = 0;
+            const p = sfx.play();
+            const finish = () => { sfx.pause(); sfx.currentTime = 0; sfx.volume = 1; sfx.playbackRate = SPEED; };
+            if (p && p.then) p.then(finish).catch(() => { sfx.volume = 1; }); else finish();
+          } catch (e) { sfx.volume = 1; }
+        }
+        function stopFade() { clearInterval(fadeTimer); fadeTimer = 0; }
+        function fadeTo(target, ms, cb) {
+          stopFade();
+          const from = sfx.volume, t0 = performance.now();
+          fadeTimer = setInterval(() => {
+            const k = Math.min(1, (performance.now() - t0) / ms);
+            sfx.volume = from + (target - from) * k;
+            if (k >= 1) { stopFade(); if (cb) cb(); }
+          }, 30);
+        }
+        function halt() { stopFade(); playing = false; sfx.pause(); sfx.currentTime = 0; sfx.volume = 1; sfx.playbackRate = SPEED; }
+        function resume() {
+          sfx.volume = 0;
+          sfx.playbackRate = SPEED;
+          const pr = sfx.play();
+          if (pr && pr.catch) pr.catch(() => {});
+          fadeTo(1, FADE_MS);
+        }
+        sfx.addEventListener('ended', () => { playing = false; done = true; });
+        function tick() {
+          if (!forming || done) return;
+          requestAnimationFrame(tick);
+          if (playing) return;
+          if (elapsed() >= FADE_TIME) { done = true; return; }          // the moment passed without sound: stay silent
+          if (elapsed() < START_AFTER_S || window.__soundEnabled !== true) return;
+          playing = true;
+          sfx.muted = false;
+          sfx.currentTime = 0;
+          resume();
+        }
+
+        // ---- the intro iframe tells us when the king starts to materialize ----
+        addEventListener('message', (e) => {
+          if (e.source !== intro.contentWindow) return;
+          const d = e.data || {};
+          if (d.type !== 'chess-intro-king' || d.k !== 'start') return;
+          if (d.seconds) FADE_TIME = d.seconds;
+          forming = true; startedAt = performance.now(); done = false; fxStarted = false; fxStarting = false;
+          try { window.__boostKingFadeAudio(); startFadeAudio(); } catch (error) { console.warn('Effect sound setup failed; the song is unaffected.', error); }
+          requestAnimationFrame(tick);
+        });
+        // intro restarted / scrolled back: silence the king sounds and re-arm them
+        addEventListener('chess-intro-reset', () => {
+          forming = false; done = false; fxStarted = false; fxStarting = false;
+          halt();
+          try { fadeAudio.pause(); fadeAudio.currentTime = 0; fadeAudio.loop = false; } catch (e) {}
+        });
+
+        // ---- the sound toggle ----
+        toggle.addEventListener('click', () => {
+          try {
+            if (toggle.getAttribute('aria-checked') === 'true') prime(); else halt();
+          } catch (e) {}
+        });
+        document.getElementById('volumePrompt')?.addEventListener('click', prime);
+      } catch (error) {
+        console.warn('King sound effects unavailable; other sounds are unaffected.', error);
+      }
+    })();
+  </script>
+  <script id="chess-intro-sequence">
+    /* Scroll to the end of index.html -> the chess clock intro plays (blurring + darkening index.html).
+       The hand lands on the king and the king-mask WebGL materializes inside the intro, which then holds.
+       Scrolling is locked while this plays; scrolling back up resets it. */
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const room = $('kingScrollRoom'), section = $('kingPageSection'), veil = $('introVeil'), intro = $('chessIntroFrame');
+      const FINAL_BLUR = 22, FINAL_DIM = 0.38;   // same look the old .king-blur had behind the card
+      const HOLD_MS = 350;                       // pause after the king has formed, before it starts to move
+      const MOVE_MS = 1500;                      // the king mask flies onto the king.png position
+      const FADE_MS = 1400;                      // then kpage fades in (and the mask fades out)
+      const ease = (k) => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      const frame = $('kingPageFrame');
+      window.__kpageHandoff = true;
+      let kingSrc = null;                        // king mask rect inside the intro (viewport px); the intro may report it
+      const ss = (a, b, x) => { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); };
+      let phase = 'idle', ready = false, pending = false, locked = false, lockY = 0, raf = 0, curBlur = 0, curBlack = 0;
+
+      const setVeil = (blur, black) => {
+        curBlur = blur; curBlack = black;
+        veil.style.visibility = (blur > 0.01 || black > 0.001) ? 'visible' : 'hidden';
+        const f = `blur(${blur.toFixed(2)}px) saturate(${(1 + 0.15 * Math.min(1, blur / FINAL_BLUR)).toFixed(3)})`;
+        veil.style.webkitBackdropFilter = veil.style.backdropFilter = f;
+        veil.style.background = `rgba(0,0,0,${black.toFixed(3)})`;
+      };
+      const poke = () => window.dispatchEvent(new Event('scroll'));   // lets the existing scroll-based scripts (typewriter, transition sound) follow the card
+
+      // ---- scroll lock while the sequence plays ----
+      const stop = (e) => { if (locked) e.preventDefault(); };
+      addEventListener('wheel', stop, { passive: false });
+      addEventListener('touchmove', stop, { passive: false });
+      addEventListener('keydown', (e) => { if (locked && [' ', 'PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'End', 'Home'].includes(e.key)) e.preventDefault(); });
+      addEventListener('scroll', () => { if (locked && Math.abs(scrollY - lockY) > 1) scrollTo(0, lockY); }, { passive: true });
+      const lock = () => { lockY = scrollY; locked = true; };
+
+      // ---- messages from the intro iframe ----
+      addEventListener('message', (e) => {
+        if (e.source !== intro.contentWindow) return;
+        const d = e.data || {};
+        if (d.type === 'chess-intro-audio') SFX.store(d.name, d.buf);
+        else if (d.type === 'chess-intro-cue') {
+          if (d.k === 'reset') SFX.reset(); else if (d.k === 'buf') SFX.buffer(d.n, d.d, d.r, d.v); else if (d.k === 'bell') SFX.bell(d.d);
+        }
+        else if (d.type === 'chess-intro-ready') {
+          if (!SFX.has()) intro.contentWindow.postMessage({ type: 'chess-intro-need-audio' }, '*');
+          ready = true; if (pending) { pending = false; startIntro(); }
+        }
+        else if (d.type === 'chess-intro-veil' && phase === 'intro') setVeil(d.blur, d.black);
+        else if (d.type === 'chess-intro-king-rect' && d.rect) {   // optional: where the king mask sits in the intro, in viewport px
+          const r = d.rect; kingSrc = { x: r.x ?? r.left, y: r.y ?? r.top, w: r.w ?? r.width, h: r.h ?? r.height };
+        }
+        else if (d.type === 'chess-intro-landed') { window.__onKingLanded && window.__onKingLanded(d); }
+        else if (d.type === 'chess-intro-held') { if (phase === 'intro') endIntro(); }   // the king has formed: the scene holds, scrolling is released
+      });
+      const ping = setInterval(() => { if (ready) clearInterval(ping); else intro.contentWindow && intro.contentWindow.postMessage({ type: 'chess-intro-ping' }, '*'); }, 500);
+
+      // the intro's sounds follow the page's volume toggle (the song / other effects are untouched)
+      const toggle = $('volumeToggle');
+      const soundOn = () => window.__soundEnabled === true || (toggle && toggle.getAttribute('aria-checked') === 'true');
+
+      // ---- intro sound engine: lives in THIS page (where the toggle click happens), so the browser always allows it ----
+      const SFX = (() => {
+        let AC = null, master = null, rev = null, bus = null;
+        const raw = {}, buf = {};
+        const decode = (n) => { if (AC && raw[n] && !buf[n]) { const r = raw[n]; raw[n] = null; AC.decodeAudioData(r.slice(0)).then((b) => { buf[n] = b; }).catch(() => {}); } };
+        function ensure() {       // called from user gestures (toggle / prompt / any click or key)
+          try {
+            if (!AC) {
+              AC = new (window.AudioContext || window.webkitAudioContext)();
+              master = AC.createGain(); master.gain.value = soundOn() ? 0.9 : 0; master.connect(AC.destination);
+              rev = AC.createConvolver();
+              const n = AC.sampleRate * 3, bf = AC.createBuffer(2, n, AC.sampleRate);
+              for (let c = 0; c < 2; c++) { const d = bf.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.5); }
+              rev.buffer = bf;
+              const rg = AC.createGain(); rg.gain.value = 0.3; rev.connect(rg); rg.connect(master);
+              Object.keys(raw).forEach(decode);
+            }
+            if (AC.state !== 'running') AC.resume().catch(() => {});
+          } catch (err) { console.warn('Intro sound unavailable; the song is unaffected.', err); }
+        }
+        const setOn = (on) => { if (on) ensure(); if (master) master.gain.setTargetAtTime(on ? 0.9 : 0, AC.currentTime, 0.05); };
+        function reset() {
+          if (!AC) return;
+          if (bus) { const o = bus; o.gain.setTargetAtTime(0, AC.currentTime, 0.05); setTimeout(() => { try { o.disconnect(); } catch (e) {} }, 700); }
+          bus = AC.createGain(); bus.connect(master); bus.connect(rev);
+        }
+        function buffer(name, d, rate, vol) {
+          if (!AC || !buf[name] || !soundOn()) return;
+          if (!bus) reset();
+          const s = AC.createBufferSource(), g = AC.createGain();
+          s.buffer = buf[name]; s.playbackRate.value = rate; g.gain.value = vol; s.connect(g); g.connect(bus); s.start(AC.currentTime + d);
+        }
+        function bell(d) {
+          if (!AC || !soundOn()) return;
+          if (!bus) reset();
+          const t = AC.currentTime + d, f = 196;
+          [[0.5,.5,9],[1,.8,8],[1.183,.5,6],[1.506,.35,5],[2,.6,5],[2.514,.25,3.5],[2.662,.25,3.5],[3.011,.2,2.5],[4.166,.15,2]].forEach(([r, a, dd]) => {
+            const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine'; o.frequency.value = f * r;
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(a * 0.5, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dd);
+            o.connect(g); g.connect(bus); o.start(t); o.stop(t + dd + 0.1);
+          });
+          const nb = AC.createBuffer(1, AC.sampleRate * 0.1, AC.sampleRate), dt = nb.getChannelData(0);
+          for (let i = 0; i < dt.length; i++) dt[i] = Math.random() * 2 - 1;
+          const n = AC.createBufferSource(), bp = AC.createBiquadFilter(), g = AC.createGain();
+          n.buffer = nb; bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 1;
+          g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+          n.connect(bp); bp.connect(g); g.connect(bus); n.start(t);
+        }
+        // any click / key / touch on the page unlocks the audio (the toggle and the prompt are clicks too)
+        ['pointerdown', 'click', 'keydown', 'touchend'].forEach((ev) => addEventListener(ev, () => { if (soundOn() || ev === 'click' || ev === 'pointerdown') ensure(); }, { capture: true, passive: true }));
+        return {
+          ensure, setOn, reset, buffer, bell,
+          has: () => Object.keys(raw).length + Object.keys(buf).length > 0,
+          store: (name, ab) => { if (!raw[name] && !buf[name]) { raw[name] = ab; decode(name); } },
+        };
+      })();
+      const sendSound = () => { SFX.setOn(soundOn()); };
+      if (toggle) {
+        new MutationObserver(sendSound).observe(toggle, { attributes: true, attributeFilter: ['aria-checked'] });
+        toggle.addEventListener('click', () => setTimeout(sendSound, 0));
+      }
+      function startIntro() {
+        SFX.ensure(); SFX.setOn(soundOn()); SFX.reset();
+        intro.style.opacity = '1';
+        intro.style.visibility = 'visible';
+        intro.contentWindow.postMessage({ type: 'chess-intro-start', sound: window.__soundEnabled === true || (toggle && toggle.getAttribute('aria-checked') === 'true') }, '*');
+      }
+      function trigger() {
+        phase = 'intro'; lock();
+        window.dispatchEvent(new Event('chess-intro-reset'));   // re-arms the king sound effects
+        if (ready) startIntro(); else pending = true;
+      }
+      // the king silhouette's rect on the kpage, in kpage-frame coordinates (asked from kpage.html, with a matching fallback)
+      function getKingDst(cb) {
+        let done = false;
+        const finish = (r) => { if (done) return; done = true; removeEventListener('message', on); cb(r); };
+        const on = (e) => { if (e.source === frame.contentWindow && e.data && e.data.type === 'king-rect') finish(e.data.rect); };
+        addEventListener('message', on);
+        try { frame.contentWindow.postMessage({ type: 'get-king-rect' }, '*'); } catch (err) {}
+        setTimeout(() => {
+          const sc = Math.max(1, frame.clientHeight - 10) / 952;
+          finish({ left: 10 + 2 * sc, top: 5 - 39 * sc + 97 * sc, width: 266 * sc, height: 894 * sc });
+        }, 300);
+      }
+      // where the king mask is in the intro: __kingAnchor = {x:0, y:0, h:1.3} on a canvas 2 units tall, i.e. the
+      // 200x654 mask image is centred on the screen and 65% of the viewport tall
+      function defaultSrc() {
+        const h = innerHeight * 0.65, w = h * 200 / 654;
+        return { x: (innerWidth - w) / 2, y: (innerHeight - h) / 2, w, h };
+      }
+      let landed = null, flyTimer = 0;
+      function endIntro() {   // the king has formed: hold a beat, glide it onto kpage's king, then swap colours
+        phase = 'handoff';
+        setTimeout(() => {
+          if (phase !== 'handoff') return;
+          section.style.transform = 'none';   // park the (still invisible) card in its final place so its frame can be measured
+          getKingDst((r) => {
+            if (phase !== 'handoff') return;
+            const fb = frame.getBoundingClientRect();                         // real position of the kpage frame on screen
+            const fs = frame.clientWidth ? fb.width / frame.clientWidth : 1;   // any scale applied to the frame
+            const v = r.vwidth != null ? { left: r.vleft, top: r.vtop, width: r.vwidth, height: r.vheight } : r;   // kpage's exact king box
+            const rect = { x: fb.left + v.left * fs, y: fb.top + v.top * fs, w: v.width * fs, h: v.height * fs };
+            const b0 = curBlur, k0 = curBlack;
+            landed = null;
+            // the intro flies its own smoke king (position, size, stillness) and reports its rotation when it lands
+            intro.contentWindow.postMessage({ type: 'chess-intro-fly', rect, ms: MOVE_MS }, '*');
+            try { window.__playKingFlySound && window.__playKingFlySound(); } catch (err) {}   // ksound.mp3 starts with the flight
+            clearTimeout(flyTimer);
+            flyTimer = setTimeout(() => { if (phase === 'handoff') fadeCard(b0, k0); }, MOVE_MS + 1200);   // safety net
+            window.__onKingLanded = (info) => { if (phase === 'handoff') { clearTimeout(flyTimer); landed = info; fadeCard(b0, k0); } };
+          });
+        }, HOLD_MS);
+      }
+      function fadeCard(b0, k0) {   // the mask has landed on king.png: kpage fades in over it
+        phase = 'card-in';
+        // kpage's black smoke king takes over the exact rotation the white one has landed with
+        try { frame.contentWindow.postMessage({ type: 'king-card-in' }, '*'); } catch (err) {}
+        section.style.transform = 'none';
+        section.style.visibility = 'visible';
+        const t0 = performance.now();
+        const step = (now) => {
+          const k = Math.min(1, (now - t0) / FADE_MS), e = ss(0, 1, k);
+          section.style.opacity = e.toFixed(3);
+          intro.style.opacity = (1 - ss(0.35, 1, k)).toFixed(3);   // the white king stays on the landing spot and fades out as kpage's king fades in
+          setVeil(b0 + (FINAL_BLUR - b0) * e, k0 + (FINAL_DIM - k0) * e);   // settle into the soft blurred backdrop
+          poke();
+          if (k < 1) raf = requestAnimationFrame(step);
+          else { section.classList.add('is-live'); intro.style.visibility = 'hidden'; phase = 'card'; locked = false; poke(); }
+        };
+        raf = requestAnimationFrame(step);
+      }
+      function reset() {   // scrolled back up: fade the card and intro away and re-arm everything
+        phase = 'resetting';
+        cancelAnimationFrame(raf);
+        window.dispatchEvent(new Event('chess-intro-reset'));
+        section.classList.remove('is-live');
+        clearTimeout(flyTimer); window.__onKingLanded = null;
+        const t0 = performance.now(), b0 = curBlur, k0 = curBlack;
+        const o0 = parseFloat(intro.style.opacity || '1'), c0 = parseFloat(section.style.opacity || '0');
+        const step = (now) => {
+          const k = Math.min(1, (now - t0) / 400);
+          intro.style.opacity = (o0 * (1 - k)).toFixed(3);
+          section.style.opacity = (c0 * (1 - k)).toFixed(3);
+          setVeil(b0 * (1 - k), k0 * (1 - k));
+          if (k < 1) raf = requestAnimationFrame(step);
+          else {
+            section.style.visibility = 'hidden'; section.style.transform = 'translateY(100vh)'; section.style.opacity = 0;
+            intro.style.visibility = 'hidden'; intro.style.opacity = '1'; intro.style.transform = '';
+            try { intro.contentWindow.postMessage({ type: 'chess-intro-stop' }, '*'); } catch (e) {}
+            phase = 'idle'; poke();
+          }
+        };
+        raf = requestAnimationFrame(step);
+      }
+      const check = () => {
+        const vh = innerHeight, top = room.getBoundingClientRect().top;
+        if (phase === 'idle' && top < vh * 0.97) trigger();
+        else if (phase === 'card' && top >= vh * 0.99) reset();
+      };
+      addEventListener('scroll', check, { passive: true });
+      addEventListener('resize', check, { passive: true });
+      check();
+    })();
+  </script>
 </body>
 </html>
