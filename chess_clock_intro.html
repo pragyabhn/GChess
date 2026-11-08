@@ -37,7 +37,8 @@ const T = {
 };
 
 const canvas = document.getElementById('gl'), veil = document.getElementById('veil');
-const gl = canvas.getContext('webgl2', {alpha:true, premultipliedAlpha:true, antialias:true});
+const LOWP = matchMedia('(pointer: coarse), (max-width: 1024px)').matches;   // phones / tablets: lighter rendering
+const gl = canvas.getContext('webgl2', {alpha:true, premultipliedAlpha:true, antialias:!LOWP, powerPreference:'high-performance'});
 if(!gl){ document.body.innerHTML='<p style="color:#fff;padding:2em">WebGL2 not supported.</p>'; throw 0; }
 
 const vs = `#version 300 es
@@ -79,7 +80,7 @@ function load(name){return new Promise(res=>{const im=new Image();im.onload=()=>
 
 // ---------- layout ----------
 let VP=I(),W=1,H=1;
-function resize(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*d;canvas.height=H*d;gl.viewport(0,0,canvas.width,canvas.height);
+function resize(){const d=Math.min(devicePixelRatio||1,LOWP?1.5:2);W=innerWidth;H=innerHeight;canvas.width=W*d;canvas.height=H*d;gl.viewport(0,0,canvas.width,canvas.height);
   const asp=W/H, view=Math.max(3.0,2.7/asp), D=7, f=1/Math.tan(Math.atan(view/2/D)); // vertical fov
   const n=0.1,fa=50,P=[f/asp,0,0,0,0,f,0,0,0,0,(fa+n)/(n-fa),-1,0,0,2*fa*n/(n-fa),0];
   VP=mul(P,tr(0,0,-D)); view_=view;
@@ -243,8 +244,8 @@ if(EMBED){
 
   // ---- tweakables (scene units: the canvas is 2 tall; x runs +-aspect) -----------------------
   const params  = new URLSearchParams(location.search);
-  const MOBILE  = matchMedia('(max-width: 700px)').matches;
-  const N_WHITE = Math.max(2000, +(params.get('smokeN') || window.KING_SMOKE_COUNT || (MOBILE ? 70000 : 160000)));
+  const MOBILE  = matchMedia('(max-width: 1024px), (pointer: coarse)').matches;
+  const N_WHITE = Math.max(2000, +(params.get('smokeN') || window.KING_SMOKE_COUNT || (MOBILE ? 40000 : 160000)));
   const TURB    = 0.075;    // how strongly the helix field stirs the smoke
   const GAIN    = 1.0;      // overall smoke brightness
   const ROT_SPEED = 0.45;   // turntable spin of the king about its own vertical axis (radians / second)

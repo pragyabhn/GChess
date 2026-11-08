@@ -390,3 +390,8 @@ html, body { background:#fff !important; }
   }
   .king-smoke { height: 100vh; height: 100dvh; }
 }
+/* Phones / touch: drop the animated SVG displacement filters. */
+@media (max-width: 1024px), (pointer: coarse) {
+  .kinetic-word, .kinetic-near, .kinetic-hover { filter: none !important; animation: none !important; will-change: auto !important; }
+  .board-e262d35079e7::after { animation: none; }
+}

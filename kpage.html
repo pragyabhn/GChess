@@ -236,6 +236,7 @@
       const pointer = { x: 0, y: 0, sx: 0, sy: 0, inside: false, started: false };
       let animationFrame = 0;
       const movePointer = (event) => {
+        if (event.pointerType === 'touch') return;
         if (!pointer.started) {
           pointer.x = pointer.sx = event.clientX;
           pointer.y = pointer.sy = event.clientY;
@@ -321,7 +322,7 @@
 
   const MOBILE = matchMedia('(max-width: 700px)').matches;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const N = MOBILE ? 70000 : 160000;
+  const N = MOBILE ? 40000 : 160000;
   const TURB = 0, ROT_SPEED = 0.45, GAIN = 5.0;
   const KH = 1.14;                // king height in scene units
   const FADE_TIME = reduced ? 1.2 : 2.0;
@@ -576,7 +577,7 @@ void main() {
   let cw = 1, ch = 1, aspect = 1, pxPerWorld = 1;
   let S = 1, Ox = 0, Oy = 0;
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, MOBILE ? 1.5 : 2);
     cw = canvas.clientWidth || innerWidth; ch = canvas.clientHeight || innerHeight;
     const w = Math.max(2, Math.min(1800, Math.round(cw * dpr)));
     const h = Math.max(2, Math.round(w * ch / cw));
@@ -615,10 +616,10 @@ void main() {
   // ---- frame ------------------------------------------------------------------
   let ready = false, simT = 0, last = 0, rotA = 0, formT = 0;
   // index.html is about to fade this card in: make sure the black king is already fully formed (a hidden iframe can be throttled)
-  addEventListener('message', (e) => { if (e.source === window.parent && e.data && e.data.type === 'king-card-in') formT = FADE_TIME; });
+  addEventListener('message', (e) => { if (e.source !== window.parent || !e.data) return; if (e.data.type === 'get-king-rect') window.__kingRun = true; if (e.data.type === 'king-card-in') { window.__kingRun = true; formT = FADE_TIME; } });
   function frame(now) {
     requestAnimationFrame(frame);
-    if (!ready || document.hidden) { last = now; return; }
+    if (!ready || document.hidden || (window.parent !== window && !window.__kingRun)) { last = now; return; }   // idle until index.html needs the king
     const dt = Math.min(0.05, Math.max(0.001, (now - (last || now)) / 1000));
     last = now; simT += dt;
     formT = Math.min(FADE_TIME, formT + dt);
