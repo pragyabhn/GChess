@@ -896,3 +896,12 @@ body.intro-on *, body.intro-on *::before, body.intro-on *::after { animation-pla
 @media (max-width: 1024px), (pointer: coarse) {
   #introVeil { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 }
+
+/* web.png stays crisp above the blur/dim veil while the intro plays (a copy of #webTexture lifted above #introVeil, below the intro frame) */
+#webKeep { position: fixed; inset: -8%; z-index: 41; pointer-events: none; overflow: hidden; display: none; }
+body.web-keep #webKeep { display: block; }
+body.web-keep #webTexture { visibility: hidden; }
+#webKeep::before, #webKeep::after { content: ""; position: absolute; inset: 0; background: url("web.png") center / cover no-repeat; mix-blend-mode: screen; }
+#webKeep::before { opacity: 0.28; filter: grayscale(1) brightness(0.65) contrast(0.8); }
+#webKeep::after { opacity: 0.16; filter: grayscale(1) brightness(0.7) blur(5px); }
+@media (max-width: 1024px), (pointer: coarse) { #webKeep::after { display: none; } }
