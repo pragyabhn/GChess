@@ -26,6 +26,7 @@
   <div id="fogBackground" aria-hidden="true">
     <div id="webTexture" aria-hidden="true"></div>
   </div>
+  <div id="webKeep" aria-hidden="true"></div>
   <main class="page-stage" id="pageStage">
   <div class="shape rect image-db87d6950a4f" aria-hidden="true"></div>
   <div class="shape rect ethereal-w-db88f0aa579b" aria-hidden="true"></div>
@@ -900,7 +901,7 @@
       }
       function trigger() {
         phase = 'intro'; lock();
-        document.body.classList.add('intro-on');   // freeze the page's own background animations while the intro plays
+        document.body.classList.add('intro-on', 'web-keep');   // freeze the page's own background animations while the intro plays
         window.dispatchEvent(new Event('chess-intro-reset'));   // re-arms the king sound effects
         if (ready) startIntro(); else pending = true;
       }
@@ -959,7 +960,7 @@
           setVeil(b0 + (FINAL_BLUR - b0) * e, k0 + (FINAL_DIM - k0) * e);   // settle into the soft blurred backdrop
           poke();
           if (k < 1) raf = requestAnimationFrame(step);
-          else { section.classList.add('is-live'); intro.style.visibility = 'hidden'; phase = 'card'; locked = false; poke(); }
+          else { section.classList.add('is-live'); document.body.classList.remove('web-keep'); intro.style.visibility = 'hidden'; phase = 'card'; locked = false; poke(); }
         };
         raf = requestAnimationFrame(step);
       }
@@ -981,7 +982,7 @@
             section.style.visibility = 'hidden'; section.style.transform = 'translateY(100vh)'; section.style.opacity = 0;
             intro.style.visibility = 'hidden'; intro.style.opacity = '1'; intro.style.transform = '';
             try { intro.contentWindow.postMessage({ type: 'chess-intro-stop' }, '*'); } catch (e) {}
-            phase = 'idle'; document.body.classList.remove('intro-on'); poke();
+            phase = 'idle'; document.body.classList.remove('intro-on', 'web-keep'); poke();
           }
         };
         raf = requestAnimationFrame(step);
