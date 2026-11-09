@@ -887,14 +887,12 @@ html, body, .shape.text, .shape.text *, .kinetic-word { cursor: default; }
   .kinetic-word, .kinetic-near, .kinetic-hover { filter: none !important; animation: none !important; will-change: auto !important; }
   .volume-prompt { filter: none !important; }
   .lets-learn-dc952e24671e { filter: none !important; }
-  #fogBackground::after, #webTexture::after { display: none; }
   #webTexture::before { filter: grayscale(1) brightness(0.65) contrast(0.8) !important; animation-duration: 60s; }
   #fogBackground::before { animation-duration: 48s; }
 }
 
 /* While the intro / king card is on screen, the page behind it stays still (saves a lot of GPU). */
 body.intro-on *, body.intro-on *::before, body.intro-on *::after { animation-play-state: paused !important; }
-body.intro-on #webTexture, body.intro-on #fogBackground::after { display: none; }
 @media (max-width: 1024px), (pointer: coarse) {
   #introVeil { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 }
